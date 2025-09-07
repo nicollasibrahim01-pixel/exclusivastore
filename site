@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loja - Moda Contemporânea</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .product-card { transition: transform .25s ease, box-shadow .25s ease; }
+    .product-card:hover { transform: translateY(-4px); }
+    .cart-badge { animation: bounce 0.5s ease-in-out; }
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+      <h1 class="text-2xl font-bold text-gray-900">Loja</h1>
+      <nav class="hidden md:flex space-x-8">
+        <a href="#" class="text-gray-700 hover:text-gray-900 font-medium">Feminino</a>
+        <a href="#" class="text-gray-700 hover:text-gray-900 font-medium">Masculino</a>
+        <a href="#" class="text-gray-700 hover:text-gray-900 font-medium">Acessórios</a>
+        <a href="#" class="text-gray-700 hover:text-gray-900 font-medium">Promoções</a>
+      </nav>
+      <div class="flex items-center space-x-4">
+        <span id="user-info" class="text-gray-700 hidden">Olá, <span id="user-name"></span></span>
+        <button id="logout-btn" onclick="logout()" class="text-gray-700 hover:text-gray-900 hidden">Sair</button>
+        <button class="text-gray-700 hover:text-gray-900">🔍</button>
+        <button class="text-gray-700 hover:text-gray-900">👤</button>
+        <button onclick="toggleCart()" class="relative text-gray-700 hover:text-gray-900">
+          🛒
+          <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center cart-badge hidden">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="bg-black text-white py-20 text-center">
+    <h2 class="text-4xl md:text-6xl font-bold">Nova Coleção</h2>
+    <p class="text-xl md:text-2xl mb-8 opacity-90">Descubra as últimas tendências da moda</p>
+    <button class="bg-white text-black px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition">Explorar Agora</button>
+  </section>
+
+  <!-- Produtos em Destaque -->
+  <section class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-4">
+      <h3 class="text-3xl font-bold text-center mb-12 text-gray-900">Produtos em Destaque</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8" id="products-grid"></div>
+    </div>
+  </section>
+
+  <!-- Cadastro/Login -->
+  <section id="auth-section" class="max-w-md mx-auto py-12">
+    <h3 class="text-xl font-bold mb-2">Cadastro</h3>
+    <input type="email" id="signup-email" placeholder="Email" class="w-full p-2 mb-2 border rounded">
+    <input type="password" id="signup-pass" placeholder="Senha" class="w-full p-2 mb-2 border rounded">
+    <button onclick="signup()" class="w-full bg-black text-white py-2 rounded mb-4">Cadastrar</button>
+
+    <h3 class="text-xl font-bold mb-2">Login</h3>
+    <input type="email" id="login-email" placeholder="Email" class="w-full p-2 mb-2 border rounded">
+    <input type="password" id="login-pass" placeholder="Senha" class="w-full p-2 mb-2 border rounded">
+    <button onclick="login()" class="w-full bg-black text-white py-2 rounded">Entrar</button>
+  </section>
+
+  <!-- Carrinho -->
+  <aside id="cart-sidebar" class="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
+    <div class="p-6 border-b flex justify-between items-center">
+      <h3 class="text-xl font-semibold">Carrinho de Compras</h3>
+      <button onclick="toggleCart()" class="text-gray-500 hover:text-gray-700">✖</button>
+    </div>
+    <div id="cart-items" class="flex-1 overflow-y-auto p-6">
+      <p class="text-gray-500 text-center">Seu carrinho está vazio</p>
+    </div>
+    <div class="border-t p-6">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-lg font-semibold">Total:</span>
+        <span id="cart-total" class="text-lg font-bold text-black">R$ 0,00</span>
+      </div>
+      <button onclick="checkout()" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">Finalizar Compra</button>
+    </div>
+  </aside>
+  <div id="cart-overlay" class="fixed inset-0 bg-black/50 hidden z-40" onclick="toggleCart()"></div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="text-gray-400">&copy; 2024 Loja. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- Firebase + Scripts -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAPQfTfFq_UpYO6dLqMI6xe2HPN1UPSQAw",
+      authDomain: "exclusivastoregab.firebaseapp.com",
+      projectId: "exclusivastoregab",
+      storageBucket: "exclusivastoregab.firebasestorage.app",
+      messagingSenderId: "557224163410",
+      appId: "1:557224163410:web:0ea0da592a61a6da1a078b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const authSection = document.getElementById('auth-section');
+    const userInfo = document.getElementById('user-info');
+    const userName = document.getElementById('user-name');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // Detecta mudança no login
+    onAuthStateChanged(auth, user => {
+      if(user){
+        authSection.classList.add('hidden');
+        userInfo.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
+        userName.textContent = user.email;
+      } else {
+        authSection.classList.remove('hidden');
+        userInfo.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
+      }
+    });
+
+    window.signup = () => {
+      const email = document.getElementById('signup-email').value;
+      const pass = document.getElementById('signup-pass').value;
+      createUserWithEmailAndPassword(auth, email, pass)
+        .then(() => alert('Cadastro realizado com sucesso!'))
+        .catch(e => alert(e.message));
+    };
+
+    window.login = () => {
+      const email = document.getElementById('login-email').value;
+      const pass = document.getElementById('login-pass').value;
+      signInWithEmailAndPassword(auth, email, pass)
+        .then(() => alert('Bem-vindo de volta!'))
+        .catch(e => alert(e.message));
+    };
+
+    window.logout = () => {
+      signOut(auth).then(()=>alert('Você saiu!'));
+    };
+
+    // Produtos e carrinho
+    const products = [
+      { id:1,name:"Vestido Floral Elegante",price:189.90,image:"https://sanfelipo.com.br/wp-content/uploads/2022/08/20190726_200126_1____01-PRODUTO-SEM-IMAGEM-1000X1000.jpg"},
+      { id:2,name:"Camisa Social Masculina",price:129.90,image:"https://sanfelipo.com.br/wp-content/uploads/2022/08/20190726_200126_1____01-PRODUTO-SEM-IMAGEM-1000X1000.jpg"},
+      { id:3,name:"Bolsa de Couro Premium",price:299.90,image:"https://sanfelipo.com.br/wp-content/uploads/2022/08/20190726_200126_1____01-PRODUTO-SEM-IMAGEM-1000X1000.jpg"},
+      { id:4,name:"Jeans Skinny Feminino",price:159.90,image:"https://sanfelipo.com.br/wp-content/uploads/2022/08/20190726_200126_1____01-PRODUTO-SEM-IMAGEM-1000X1000.jpg"}
+    ];
+
+    let cart = JSON.parse(localStorage.getItem('exclusiva_cart')||'[]');
+    const formatBRL = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+    const saveCart = ()=>localStorage.setItem('exclusiva_cart',JSON.stringify(cart));
+
+    const loadProducts = ()=>{
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = products.map(p=>`
+        <article class="product-card bg-gray-900 rounded-lg shadow-lg overflow-hidden hover:shadow-2xl transition">
+          <div class="h-64 flex items-center justify-center overflow-hidden bg-black">
+            <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover" />
+          </div>
+          <div class="p-6">
+            <h4 class="text-lg font-semibold mb-2 text-white">${p.name}</h4>
+            <p class="text-2xl font-bold text-white mb-4">${formatBRL(p.price)}</p>
+            <button onclick="addToCart(${p.id})" class="w-full bg-yellow-500 text-black py-2 rounded-lg font-semibold hover:bg-yellow-400 transition">Adicionar ao Carrinho</button>
+          </div>
+        </article>
+      `).join('');
+    };
+
+    const addToCart = (id)=>{
+      const p = products.find(x=>x.id===id);
+      const item = cart.find(x=>x.id===id);
+      if(item) item.quantity+=1;
+      else cart.push({...p,quantity:1});
+      saveCart(); updateCartUI();
+    };
+
+    const removeFromCart = id => { cart=cart.filter(x=>x.id!==id); saveCart(); updateCartUI(); };
+    const updateQuantity=(id,change)=>{ const item = cart.find(x=>x.id===id); if(!item) return; item.quantity+=change; if(item.quantity<=0) removeFromCart(id); else { saveCart(); updateCartUI(); }};
+
+    const updateCartUI=()=>{
+      const cartCount = document.getElementById('cart-count');
+      const cartItems = document.getElementById('cart-items');
+      const cartTotal = document.getElementById('cart-total');
+      const totalItems = cart.reduce((sum,i)=>sum+i.quantity,0);
+      const totalPrice = cart.reduce((sum,i)=>sum+i.price*i.quantity,0);
+      cartCount.textContent=totalItems>0?totalItems:'0';
+      cartCount.classList.toggle('hidden', totalItems===0);
+      if(cart.length===0){ cartItems.innerHTML='<p class="text-gray-500 text-center">Seu carrinho está vazio</p>'; }
+      else{
+        cartItems.innerHTML = cart.map(i=>`
+          <div class="flex items-center justify-between border-b pb-4 mb-4">
+            <div class="flex items-center space-x-3">
+              <img src="${i.image}" class="w-12 h-12 object-cover rounded">
+              <div>
+                <h4 class="font-semibold text-sm">${i.name}</h4>
+                <p class="text-black font-bold">${formatBRL(i.price)}</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button onclick="updateQuantity(${i.id},-1)" class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300">-</button>
+              <span class="w-8 text-center">${i.quantity}</span>
+              <button onclick="updateQuantity(${i.id},1)" class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300">+</button>
+              <button onclick="removeFromCart(${i.id})" class="ml-2 text-red-500 hover:text-red-700">🗑️</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      cartTotal.textContent=formatBRL(totalPrice);
+    };
+
+    window.toggleCart = ()=>{ document.getElementById('cart-sidebar').classList.toggle('translate-x-full'); document.getElementById('cart-overlay').classList.toggle('hidden'); };
+    window.checkout = ()=>alert('Checkout de demonstração. Integração futura com gateway de pagamento.');
+    document.addEventListener('DOMContentLoaded',()=>{ loadProducts(); updateCartUI(); });
+
+  </script>
+</body>
+</html>
